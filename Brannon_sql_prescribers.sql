@@ -94,7 +94,81 @@ SELECT nppes_provider_first_name, nppes_provider_last_org_name, specialty_descri
 
 --4. 
     --a. For each drug in the drug table, return the drug name and then a column named 'drug_type' which says 'opioid' for drugs which have opioid_drug_flag = 'Y', says 'antibiotic' for those drugs which have antibiotic_drug_flag = 'Y', and says 'neither' for all other drugs. **Hint:** You may want to use a CASE expression for this. See https://www.postgresqltutorial.com/postgresql-tutorial/postgresql-case/ 
+		 
+		 SELECT 
+		    drug_name,
+			CASE WHEN opioid_drug_flag = 'Y' AND antibiotic_drug_flag = 'N' THEN 'opioid'
+		      WHEN antibiotic_drug_flag = 'Y' AND opioid_drug_flag = 'N'THEN 'antibiotic'
+			  ELSE 'neither' END AS drug_type
+         FROM drug
+		 GROUP BY drug_name, opioid_drug_flag, antibiotic_drug_flag;
+
+    --b. Building off of the query you wrote for part a, determine whether more was spent (total_drug_cost) on opioids or on antibiotics. Hint: Format the total costs as MONEY for easier comparision.
+         
+		 SELECT drug_type, SUM(total_drug_cost) AS money
+	     FROM
+		   (SELECT 
+		    drug_name,
+			total_drug_cost,
+			CASE WHEN opioid_drug_flag = 'Y' AND antibiotic_drug_flag = 'N' THEN 'opioid'
+		      WHEN antibiotic_drug_flag = 'Y' AND opioid_drug_flag = 'N'THEN 'antibiotic'
+			  ELSE 'neither' END AS drug_type
+            FROM drug
+		    LEFT JOIN prescription
+		    USING(drug_name)
+		    WHERE total_drug_cost IS NOT NULL
+	        GROUP BY drug_name, total_drug_cost, opioid_drug_flag, antibiotic_drug_flag)
+		 GROUP BY drug_type
+		 ORDER BY money DESC;
+--More was spent on opioids than antibiotics, with opioids at $104,852,352.13 and antibiotics at $34,718,108.59.
+
+--5. 
+    --a. How many CBSAs are in Tennessee? **Warning:** The cbsa table contains information for all states, not just Tennessee.
+
+    SELECT COUNT(DISTINCT cbsa) AS cbsa_tn_count
+	FROM cbsa
+	WHERE cbsaname LIKE '%TN';
+
+--or
+
+    SELECT COUNT(DISTINCT cbsa) AS cbsa_tn_count
+	FROM cbsa
+	WHERE cbsaname LIKE '%TN%';
+	
+--There are 6 distinct cbsa numbers in TN.
+    --b. Which cbsa has the largest combined population? Which has the smallest? Report the CBSA name and total population.
+    
+	SELECT cbsaname, SUM(population) AS cbsa_population
+    FROM population
+	INNER JOIN cbsa
+	USING(fipscounty)
+	GROUP BY cbsa, cbsaname
+	ORDER BY cbsa_population;
+
+--The CBSA associated with Morristown, TN has the smallest combined population and the CBSA associated with Nashville-Davidson--Murfreesboro--Franklin, TN has the largest population.
+
+	 
+    --c. What is the largest (in terms of population) county which is not included in a CBSA? Report the county name and population.
+    
+	SELECT county, population
+	FROM population
+	INNER JOIN fips_county
+	USING(fipscounty)
+	WHERE fipscounty IN 
+      (SELECT fipscounty
+      FROM population
+	  LEFT JOIN cbsa
+	  USING(fipscounty)
+	  WHERE cbsa IS NULL)
+	ORDER BY population DESC
+	LIMIT 1;
+
+--Sevier county is the largest county in population that is not included in a CBSA with a population of 95,523.
 
 
+--6. 
+    --a. Find all rows in the prescription table where total_claims is at least 3000. Report the drug_name and the total_claim_count.
 
-    --b. Building off of the query you wrote for part a, determine whether more was spent (total_drug_cost) on opioids or on antibiotics. Hint: Format the total costs as MONEY for easier comparision.	
+    --b. For each instance that you found in part a, add a column that indicates whether the drug is an opioid.
+
+    --c. Add another column to you answer from the previous part which gives the prescriber first and last name associated with each row.
