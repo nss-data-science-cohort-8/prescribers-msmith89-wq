@@ -143,7 +143,7 @@ GROUP BY specialty_description, opioid_claim_count, total_claim_count;
 
     --b. Building off of the query you wrote for part a, determine whether more was spent (total_drug_cost) on opioids or on antibiotics. Hint: Format the total costs as MONEY for easier comparision.
          
-		 SELECT drug_type, SUM(total_drug_cost) AS money
+		 SELECT drug_type, CAST(SUM(total_drug_cost) AS money) AS cost
 	     FROM
 		   (SELECT 
 		    drug_name,
@@ -156,7 +156,7 @@ GROUP BY specialty_description, opioid_claim_count, total_claim_count;
 		    USING(drug_name)
 		    WHERE total_drug_cost IS NOT NULL)
 		 GROUP BY drug_type
-		 ORDER BY money DESC;
+		 ORDER BY cost DESC;
 --More was spent on opioids than antibiotics, with opioids at $104,852,352.13 and antibiotics at $34,718,108.59.
 
 --5. 
