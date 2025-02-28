@@ -79,12 +79,8 @@ SELECT nppes_provider_first_name, nppes_provider_last_org_name, specialty_descri
 	
 
     --d. **Difficult Bonus:** *Do not attempt until you have solved all other problems!* For each specialty, report the percentage of total claims by that specialty which are for opioids. Which specialties have a high percentage of opioids?
- SELECT specialty_description, 100 * (opioid_claim_count/SUM(total_claim_count)) AS opioid_percentage
- FROM prescriber
- LEFT JOIN prescription
- USING(npi)
- WHERE opioid_claim_count IN
-	(SELECT specialty_description, SUM(total_claim_count) AS opioid_claim_count
+ WITH opioid_table AS(
+    SELECT specialty_description, SUM(total_claim_count) AS opioid_claim_count
     FROM prescriber
     LEFT JOIN prescription
 	USING(npi)
@@ -94,8 +90,19 @@ SELECT nppes_provider_first_name, nppes_provider_last_org_name, specialty_descri
 	FROM drug
 	WHERE opioid_drug_flag = 'Y'
 	)
-	GROUP BY specialty_description)
-GROUP BY specialty_description, opioid_claim_count, total_claim_count;
+	GROUP BY specialty_description
+ )
+ SELECT specialty_description, ROUND(100 * (opioid_claim_count/SUM(total_claim_count)), 2) AS opioid_percentage
+ FROM prescriber
+ LEFT JOIN prescription
+ USING(npi)
+ LEFT JOIN opioid_table
+ USING(specialty_description)
+ WHERE total_claim_count IS NOT NULL
+ AND opioid_claim_count IS NOT NULL
+ GROUP BY specialty_description, opioid_claim_count
+ ORDER BY opioid_percentage DESC;
+
 
 --3. 
     --a. Which drug (generic_name) had the highest total drug cost?
